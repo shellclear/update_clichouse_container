@@ -1,0 +1,6 @@
+---
+# defaults file for update_clickhouse_container
+
+_update_clickhouse_container_image: "{{ update_clickhouse_container_image | default('clickhouse/clickhouse-server') }}"
+_update_clickhouse_container_image_tag: "{{ update_clickhouse_container_image_tag | default('latest') }}"
+...
