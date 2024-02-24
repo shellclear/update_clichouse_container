@@ -1,7 +1,6 @@
 ---
 # tasks file for update_clickhouse_container
 
----
 - name: "Pull {{ _update_clickhouse_container_image + ':' + _update_clickhouse_container_image_tag }}"
   containers.podman.podman_image:
     name: "{{ _update_clickhouse_container_image }}"
