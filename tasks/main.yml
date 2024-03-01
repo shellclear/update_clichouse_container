@@ -54,6 +54,16 @@
       - "{{ _update_clickhouse_container_local_path_volume_clickhouse_initialization_scripts + \":/docker-entrypoint-initdb.d:Z\"}}"
       - "{{ _update_clickhouse_container_local_path_volume_clickhouse_config + \":/etc/clickhouse-server/config.d:Z\" }}"
 
+- name: "Wait to api be ready"
+  block:
+  - name: "Register app status"
+    ansible.builtin.uri:
+      url: "http://localhost:8123"
+      method: GET
+      status_code: 200
+      return_content: true
+    register: _update_clickhouse_container_api_ready
+
 - name: "Check running version"
   block:
   - name: "Register running version"
@@ -74,6 +84,4 @@
   containers.podman.podman_container:
     name: "{{ _update_clickhouse_container_name }}-old"
     state: absent
-
-
 ...
