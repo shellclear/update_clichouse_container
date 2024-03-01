@@ -1,8 +1,99 @@
 ---
 # tasks file for update_clickhouse_container
 
+- name: "Check running version"
+  block:
+  # echo 'SELECT version()' | curl -H 'X-ClickHouse-User: admin' -H 'X-ClickHouse-Key: admin' 'http://localhost:8123/' -d @-
+  - name: "Register running version"
+    ansible.builtin.uri:
+      url: "http://localhost:8123/?query=SELECT+version%28%29"
+      method: GET
+      status_code: 200
+      return_content: true
+      headers:
+        X-ClickHouse-User: "{{ _update_clickhouse_container_clickhouse_user }}"
+        X-ClickHouse-Key: "{{ _update_clickhouse_container_clickhouse_user_password }}"
+    register: _update_clickhouse_container_version_running
+
+  - name: "Assert version running is different that version we wanted upgrade to"
+    # Check if clickhouse version is assigned to container version
+    ansible.builtin.assert:
+      that:
+        - _update_clickhouse_container_version_running['content'] | trim != _update_clickhouse_container_image_tag
+      success_msg: "Different versions, lets go"
+      fail_msg: "Same version, nothing to do here"
+
+- name: "Stop a container"
+  become: false
+  containers.podman.podman_container:
+    name: "{{ _update_clickhouse_container_name }}"
+    state: "stopped"
+    # TASK [update_clickhouse_container : Stop a container] ****************************************************************************************************************************************
+    # fatal: [fedora]: FAILED! => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python3"}, "changed": false, "msg": "Cannot start container when image is not specified!"}
+    # image: "{{ _update_clickhouse_container_image }}"
+
+# - name: "Stop a container"
+#   ansible.builtin.command:
+#     cmd: podman stop clickhouse-server
+
+- name: "Rename container"
+  become: false
+  ansible.builtin.command: podman rename clickhouse-server clickhouse-server-old
+
 - name: "Pull {{ _update_clickhouse_container_image + ':' + _update_clickhouse_container_image_tag }}"
   containers.podman.podman_image:
-    name: "{{ _update_clickhouse_container_image }}"
+    name: "{{ _update_clickhouse_container_registry + \"/\" + _update_clickhouse_container_image }}"
     tag: "{{ _update_clickhouse_container_image_tag }}"
+
+# - debug:
+#     msg:
+#       - "{{ _update_clickhouse_container_local_path_volume_clickhouse }}"
+#       - "{{ _update_clickhouse_container_local_path_volume_clickhouse_logs }}"
+#       - "{{ _update_clickhouse_container_local_path_volume_clickhouse_initialization_scripts }}"
+#       - "{{ _update_clickhouse_container_local_path_volume_clickhouse_config }}"
+
+- name: Create new version container
+  become: false
+  containers.podman.podman_container:
+    name: "{{ _update_clickhouse_container_name }}"
+    image: "{{ _update_clickhouse_container_image + \":\" + _update_clickhouse_container_image_tag }}"
+    state: started
+    restart_policy: always
+    ulimit:
+      - nofile=262144:262144
+    env:
+      CLICKHOUSE_USER: "{{ _update_clickhouse_container_clickhouse_user }}"
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      CLICKHOUSE_PASSWORD: "{{ _update_clickhouse_container_clickhouse_user_password }}"
+    network:
+      - "{{ _update_clickhouse_container_network }}"
+    volume:
+      - "{{ _update_clickhouse_container_local_path_volume_clickhouse + \":/var/lib/clickhouse:Z\"}}"
+      - "{{ _update_clickhouse_container_local_path_volume_clickhouse_logs + \":/var/log/clickhouse-server:Z\" }}"
+      - "{{ _update_clickhouse_container_local_path_volume_clickhouse_initialization_scripts + \":/docker-entrypoint-initdb.d:Z\"}}"
+      - "{{ _update_clickhouse_container_local_path_volume_clickhouse_config + \":/etc/clickhouse-server/config.d:Z\" }}"
+
+- name: "Check running version"
+  block:
+  # echo 'SELECT version()' | curl -H 'X-ClickHouse-User: admin' -H 'X-ClickHouse-Key: admin' 'http://localhost:8123/' -d @-
+  - name: "Register running version"
+    ansible.builtin.uri:
+      url: "http://localhost:8123/?query=SELECT+version%28%29"
+      method: GET
+      status_code: 200
+      return_content: true
+      headers:
+        X-ClickHouse-User: "{{ _update_clickhouse_container_clickhouse_user }}"
+        X-ClickHouse-Key: "{{ _update_clickhouse_container_clickhouse_user_password }}"
+    register: _update_clickhouse_container_version_running
+
+- debug:
+    var: _update_clickhouse_container_version_running
+
+- name: remove container
+  containers.podman.podman_container:
+    name: clickhouse-server-old #"{{ _update_clickhouse_container_name + \"-old\" }}"
+    state: absent
+
+
 ...

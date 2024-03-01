@@ -1,8 +1,15 @@
 ---
 # defaults file for update_clickhouse_container
 
-_update_clickhouse_container_image: "{{ update_clickhouse_container_image | default('clickhouse/clickhouse-server') }}"
+_update_clickhouse_container_registry: "{{ update_clickhouse_container_registry | default('docker.io') }}"
 _update_clickhouse_container_image_tag: "{{ update_clickhouse_container_image_tag | default('latest') }}"
-_update_clickhouse_container_name: "{{ _update_clickhouse_container_name | default('clickhouse-server') }}"
-
+_update_clickhouse_container_image: "{{ update_clickhouse_container_image | default('clickhouse/clickhouse-server') }}"
+_update_clickhouse_container_name: "{{ update_clickhouse_container_name | default('clickhouse-server') }}"
+_update_clickhouse_container_network: "{{ update_clickhouse_container_network | default('host') }}"
+_update_clickhouse_container_clickhouse_user: "{{ update_clickhouse_container_clickhouse_user | default('admin') }}"
+_update_clickhouse_container_clickhouse_user_password: "{{ update_clickhouse_container_clickhouse_user_password | mandatory }}"
+_update_clickhouse_container_local_path_volume_clickhouse: "{{ update_clickhouse_container_local_path_volume_clickhouse | mandatory }}"
+_update_clickhouse_container_local_path_volume_clickhouse_logs: "{{ update_clickhouse_container_local_path_volume_clickhouse_logs | mandatory }}"
+_update_clickhouse_container_local_path_volume_clickhouse_initialization_scripts: "{{ update_clickhouse_container_local_path_volume_clickhouse_initialization_scripts | mandatory }}"
+_update_clickhouse_container_local_path_volume_clickhouse_config: "{{ update_clickhouse_container_local_path_volume_clickhouse_config | mandatory }}"
 ...
