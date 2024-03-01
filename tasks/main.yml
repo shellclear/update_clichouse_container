@@ -27,7 +27,6 @@
     state: "stopped"
 
 - name: "Rename container"
-  become: false
   ansible.builtin.command: podman rename {{ _update_clickhouse_container_name }} {{ _update_clickhouse_container_name }}-old
 
 - name: "Pull {{ _update_clickhouse_container_image + ':' + _update_clickhouse_container_image_tag }}"
