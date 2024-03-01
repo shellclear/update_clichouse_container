@@ -3,7 +3,6 @@
 
 - name: "Check running version"
   block:
-  # echo 'SELECT version()' | curl -H 'X-ClickHouse-User: admin' -H 'X-ClickHouse-Key: admin' 'http://localhost:8123/' -d @-
   - name: "Register running version"
     ansible.builtin.uri:
       url: "http://localhost:8123/?query=SELECT+version%28%29"
@@ -16,7 +15,6 @@
     register: _update_clickhouse_container_version_running
 
   - name: "Assert version running is different that version we wanted upgrade to"
-    # Check if clickhouse version is assigned to container version
     ansible.builtin.assert:
       that:
         - _update_clickhouse_container_version_running['content'] | trim != _update_clickhouse_container_image_tag
@@ -24,36 +22,20 @@
       fail_msg: "Same version, nothing to do here"
 
 - name: "Stop a container"
-  become: false
   containers.podman.podman_container:
     name: "{{ _update_clickhouse_container_name }}"
     state: "stopped"
-    # TASK [update_clickhouse_container : Stop a container] ****************************************************************************************************************************************
-    # fatal: [fedora]: FAILED! => {"ansible_facts": {"discovered_interpreter_python": "/usr/bin/python3"}, "changed": false, "msg": "Cannot start container when image is not specified!"}
-    # image: "{{ _update_clickhouse_container_image }}"
-
-# - name: "Stop a container"
-#   ansible.builtin.command:
-#     cmd: podman stop clickhouse-server
 
 - name: "Rename container"
   become: false
-  ansible.builtin.command: podman rename clickhouse-server clickhouse-server-old
+  ansible.builtin.command: podman rename {{ _update_clickhouse_container_name }} {{ _update_clickhouse_container_name }}-old
 
 - name: "Pull {{ _update_clickhouse_container_image + ':' + _update_clickhouse_container_image_tag }}"
   containers.podman.podman_image:
     name: "{{ _update_clickhouse_container_registry + \"/\" + _update_clickhouse_container_image }}"
     tag: "{{ _update_clickhouse_container_image_tag }}"
 
-# - debug:
-#     msg:
-#       - "{{ _update_clickhouse_container_local_path_volume_clickhouse }}"
-#       - "{{ _update_clickhouse_container_local_path_volume_clickhouse_logs }}"
-#       - "{{ _update_clickhouse_container_local_path_volume_clickhouse_initialization_scripts }}"
-#       - "{{ _update_clickhouse_container_local_path_volume_clickhouse_config }}"
-
 - name: Create new version container
-  become: false
   containers.podman.podman_container:
     name: "{{ _update_clickhouse_container_name }}"
     image: "{{ _update_clickhouse_container_image + \":\" + _update_clickhouse_container_image_tag }}"
@@ -75,7 +57,6 @@
 
 - name: "Check running version"
   block:
-  # echo 'SELECT version()' | curl -H 'X-ClickHouse-User: admin' -H 'X-ClickHouse-Key: admin' 'http://localhost:8123/' -d @-
   - name: "Register running version"
     ansible.builtin.uri:
       url: "http://localhost:8123/?query=SELECT+version%28%29"
@@ -88,11 +69,11 @@
     register: _update_clickhouse_container_version_running
 
 - debug:
-    var: _update_clickhouse_container_version_running
+    var: _update_clickhouse_container_version_running['content']
 
 - name: remove container
   containers.podman.podman_container:
-    name: clickhouse-server-old #"{{ _update_clickhouse_container_name + \"-old\" }}"
+    name: "{{ _update_clickhouse_container_name }}-old"
     state: absent
 
 
