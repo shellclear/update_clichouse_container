@@ -54,6 +54,10 @@
       - "{{ _update_clickhouse_container_local_path_volume_clickhouse_initialization_scripts + \":/docker-entrypoint-initdb.d:Z\"}}"
       - "{{ _update_clickhouse_container_local_path_volume_clickhouse_config + \":/etc/clickhouse-server/config.d:Z\" }}"
 
+- name: "Workaround to evict ansible call the api before the app is up and running"
+  ansible.builtin.pause:
+    seconds: 30
+
 - name: "Wait to api be ready"
   block:
   - name: "Register app status"
